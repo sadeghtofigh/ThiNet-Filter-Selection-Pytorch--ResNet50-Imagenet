@@ -29,11 +29,9 @@ model_names = sorted(name for name in models.__dict__
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 parser.add_argument('--data', metavar='DIR',
-                    default='D:/Datasets/ImageNet',
+                    default='',
                     help='path to dataset')
-parser.add_argument('--save_dir', type=str, default='C:/Users/s_tofigh/Desktop/Python/Pruning/'
-                                                    'My_Pruning/ThiNet/Results(Checkpoint)/'
-                                                    'ThiNet_Checkpoint',
+parser.add_argument('--save_dir', type=str, default='C:/Users/...',
                     help='Folder to save checkpoints and log.')
 parser.add_argument('--arch', '-a', metavar='ARCH', default='resnet50',
                     choices=model_names,
@@ -42,23 +40,17 @@ parser.add_argument('--arch', '-a', metavar='ARCH', default='resnet50',
                          ' (default: resnet50)')
 parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
                     help='number of data loading workers (default: 4)')
-#parser.add_argument('--p_layer', default=0, type=int, metavar='N', help='which layer  is going to be pruned')
 parser.add_argument('-b', '--batch-size', default=64, type=int, metavar='N', help='mini-batch size (default: 256)')
-parser.add_argument('--resume', default='C:/Users/s_tofigh/Desktop/Python/Pre-trained networks/FPGM/ImageNet_ResNet50/Best_Found/checkpoint.resnet50.2022-12-09-2018.pth',
+parser.add_argument('--resume', default='',
                     type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
 parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
 parser.add_argument('--use_pretrain', dest='use_pretrain', action='store_true', help='use pre-trained model or not')
 
 # compress rate
-parser.add_argument('--rate_thinet', type=float, default=0.4, help='the reducing ratio of pruning based on thinet')
-parser.add_argument('--random_data', default=10000, type=int, metavar='images', help='number of random images for filter selection by thinet')
-parser.add_argument('--random_entry', default=10, type=int, metavar='entry', help='number of random entries in the output')
-parser.add_argument('--layer_to_prune', type=int, default=0, help='compress layer of model')
+parser.add_argument('--rate_thinet', type=float, default=0.2, help='The reducing ratio of pruning')
+parser.add_argument('--random_data', default=10000, type=int, metavar='images', help='The number of random images for filter selection by thinet')
+parser.add_argument('--random_entry', default=10, type=int, metavar='entry', help='number of the random instances in the output')
 parser.add_argument('--skip_downsample', type=int, default=1, help='compress layer of model')
-parser.add_argument('--use_sparse', dest='use_sparse', action='store_true', help='use sparse model as initial or not')
-parser.add_argument('--sparse',
-                    default='',
-                    type=str, metavar='PATH', help='path of sparse model')
 
 
 args = parser.parse_args()
@@ -86,15 +78,10 @@ def main():
     print_log("Thinet pruning rate: {}".format(args.rate_thinet), log)
     print_log("Number of random images for pruning : {}".format(args.random_data), log)
     print_log("Number of random instances in the output: {}".format(args.random_entry), log)
-    print_log("The intended layer for filter selection : {}".format(args.layer_to_prune), log)
     print_log("Skip downsample : {}".format(args.skip_downsample), log)
     print_log("Workers         : {}".format(args.workers), log)
 
-    if args.arch.startswith('alexnet') or args.arch.startswith('vgg'):
-        model.features = torch.nn.DataParallel(model.features)
-        model.cuda()
-    else:
-        model = torch.nn.DataParallel(model).cuda()
+    model = torch.nn.DataParallel(model).cuda()
 
     # optionally resume from a checkpoint
     if args.resume:
@@ -112,6 +99,7 @@ def main():
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
+    # Random indices for the filter selectionj sub-dataset
     data_batch_thinet = np.random.randint(1281000, size=int(args.random_data))
 
     train_dataset = datasets.ImageFolder(
@@ -129,10 +117,6 @@ def main():
     print_log("Length of dataloader:   {}".format(len(train_loader)), log)
 
 
-
-    filename = os.path.join(args.save_dir, 'checkpoint.{:}.{:}.pth.tar'.format(args.arch, args.prefix))
-    bestname = os.path.join(args.save_dir, 'best.{:}.{:}.pth.tar'.format(args.arch, args.prefix))
-
     for p_l in Filter_index.MI:
         print_log("------------------- Filter selection of layer: {} -------------------".format(p_l), log)
         m = Mask(model,train_loader, p_l, log)
@@ -140,49 +124,11 @@ def main():
         m.init_mask(args.rate_thinet)
 
 
-def import_sparse(model):
-    checkpoint = torch.load(args.sparse)
-    new_state_dict = OrderedDict()
-    for k, v in checkpoint['state_dict'].items():
-        name = k[7:]  # remove `module.`
-        new_state_dict[name] = v
-    model.load_state_dict(new_state_dict)
-    print("sparse_model_loaded")
-    return model
-
-
-def save_checkpoint(state, is_best, filename, bestname):
-    torch.save(state, filename)
-    if is_best:
-        shutil.copyfile(filename, bestname)
-
-
 def print_log(print_string, log):
     print("{:}".format(print_string))
     log.write('{:}\n'.format(print_string))
     log.flush()
-
-
-class AverageMeter(object):
-    """Computes and stores the average and current value"""
-
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
-
-        #return self.model(x)
-
+    
 
 class Mask:
     def __init__(self, model, train_loader, p_layer, log):
@@ -249,34 +195,7 @@ class Mask:
                 min_key = key
         return min_key
 
-    def init_rate(self, rate_thinet_per_layer): #Assign the pruning rate of each conv layer
-        if 'vgg' in args.arch:
-            cfg_official = [64, 64, 128, 128, 256, 256, 256, 512, 512, 512, 512, 512, 512]
-            cfg_CP_5x = [24, 22, 41, 51, 108, 89, 111, 184, 276, 228, 512, 512, 512]
-            # cfg = [32, 64, 128, 128, 256, 256, 256, 256, 256, 256, 256, 256, 256]
-            cfg_Thinet_conv = [32, 32, 64, 64, 128, 128, 128, 256, 256, 256, 512, 512, 512]
-            if args.VGG_pruned_style == "CP_5x":
-                cfg_now = cfg_CP_5x
-            elif args.VGG_pruned_style == "Thinet_conv":
-                cfg_now = cfg_Thinet_conv
-
-            cfg_index = 0
-            previous_cfg = True
-            for index, item in enumerate(self.model.named_parameters()):
-                self.compress_rate[index] = 1
-                if len(item[1].size()) == 4:
-                    if not previous_cfg:
-                        self.compress_rate[index] = rate_norm_per_layer
-                        self.distance_rate[index] = rate_dist_per_layer
-                        self.mask_index.append(index)
-                        print(item[0], "self.mask_index", self.mask_index)
-                    else:
-                        self.compress_rate[index] = 1
-                        self.distance_rate[index] = 1 - cfg_now[cfg_index] / item[1].size()[0]
-                        self.mask_index.append(index)
-                        print(item[0], "self.mask_index", self.mask_index, cfg_index, cfg_now[cfg_index])
-                        cfg_index += 1
-        elif "resnet" in args.arch:
+    def init_rate(self, rate_thinet_per_layer): 
             for index, item in enumerate(self.model.parameters()):
                 self.thinet_rate[index] = 1
             self.thinet_rate[self.p_layer] = rate_thinet_per_layer
@@ -334,30 +253,6 @@ class Mask:
                 item.data = origin_layer.cuda()
         return norm/len(self.train_loader)
 
-    def if_zero(self):
-        for index, item in enumerate(self.model.parameters()):
-            if index in self.mask_index:
-                # if index in [x for x in range(args.layer_begin, args.layer_end + 1, args.layer_inter)]:
-                a = item.data.view(self.model_length[index])
-                b = a.cpu().numpy()
-
-                print("layer: %d, number of nonzero weight is %d, zero is %d" % (
-                    index, np.count_nonzero(b), len(b) - np.count_nonzero(b)))
-
-    def f_thinet(self, difil):
-        F_T = []
-        for i in range(len(difil)):
-            min_value = float("inf")
-            min_key = 0
-            for key, value in difil.items():
-                if value < min_value:
-                    min_value = value
-                    min_key = key
-            F_T.append(min_key)
-            del difil[min_key]
-        return F_T
-
-
 class FeatureExtractor(nn.Module):
         def __init__(self, model: nn.Module, layers: Iterable[str]):
             super().__init__()
@@ -374,7 +269,6 @@ class FeatureExtractor(nn.Module):
                 self._features[layer_id] = output
 
             return fn
-
 
         def forward(self, x):
             _ = self.model(x)
