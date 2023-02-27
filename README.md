@@ -4,3 +4,8 @@ This is the Python code for the filter selection of the [ThiNet method](https://
 
 This code has been designed for ResNet 50 on ImageNet(**[ILSVRC2012](https://www.image-net.org/challenges/LSVRC/2012/)**). This implementation is based on [FPGM](https://github.com/he-y/filter-pruning-geometric-median).
 
+## Requirements:
+- PyThon  version : 3.9.12
+- PyTorch version : 1.11.0
+- TorchVision : 0.12.0
+
