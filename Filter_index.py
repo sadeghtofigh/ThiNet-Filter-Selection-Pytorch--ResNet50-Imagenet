@@ -1,5 +1,6 @@
 import torch
 
+# Shape of each convolutional layer
 layer_Shape = {'module.conv1.weight': torch.Size([1, 64, 112, 112]),
                 'module.layer1.0.conv1.weight': torch.Size([1, 64, 56, 56]),
                 'module.layer1.0.conv2.weight': torch.Size([1, 64, 56, 56]),
@@ -50,6 +51,7 @@ layer_Shape = {'module.conv1.weight': torch.Size([1, 64, 112, 112]),
                'module.layer4.2.conv2.weight': torch.Size([1, 512, 7, 7]),
                'module.layer4.2.conv3.weight': torch.Size([1, 2048, 7, 7])}
 
+# key name of each convolutional layer in the checkpoint
 next_layer_ind = {0: 'module.layer1.0.conv1', 3: 'module.layer1.0.conv2', 6: 'module.layer1.0.conv3',
                   9: 'module.layer1.1.conv1', 15: 'module.layer1.1.conv2', 18: 'module.layer1.1.conv3',
                   21: 'module.layer1.2.conv1', 24: 'module.layer1.2.conv2', 27: 'module.layer1.2.conv3',
@@ -67,6 +69,7 @@ next_layer_ind = {0: 'module.layer1.0.conv1', 3: 'module.layer1.0.conv2', 6: 'mo
                   135: 'module.layer4.1.conv1', 141: 'module.layer4.1.conv2', 144: 'module.layer4.1.conv3',
                   147: 'module.layer4.2.conv1', 150: 'module.layer4.2.conv2', 153: 'module.layer4.2.conv3'}
 
-MI = [3, 6, 9, 15, 18, 21, 24, 27, 30, 33, 36, 39, 45, 48, 51, 54, 57, 60, 63, 66, 69, 72, 75, 78,
+# index of the convolutional layers
+MI = [0, 3, 6, 9, 15, 18, 21, 24, 27, 30, 33, 36, 39, 45, 48, 51, 54, 57, 60, 63, 66, 69, 72, 75, 78,
       84, 87, 90, 93, 96, 99, 102, 105, 108, 111, 114, 117, 120, 123, 126, 129, 132, 135, 141, 144,
       147, 150, 153]
