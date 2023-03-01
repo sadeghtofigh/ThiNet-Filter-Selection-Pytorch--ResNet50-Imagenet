@@ -10,6 +10,6 @@ This code has been designed for ResNet 50 on ImageNet(**[ILSVRC2012](https://www
 - TorchVision : 0.12.0
 
 ## Explanation:
-- `rate_fthinet = 0.2` means we prune 20% of the filters in each convolutional layer and keep 80% of the filters.
+- `rate_thinet = 0.2` means we prune 20% of the filters in each convolutional layer and keep 80% of the filters.
 - `random_data = 10000` means the number of images on the sub-dataset for filter selection by F-ThiNet in 10000.
 - `random_entry = 10` means the number of the output instances for calculating the values for filter selection by F-ThiNet in 10.
