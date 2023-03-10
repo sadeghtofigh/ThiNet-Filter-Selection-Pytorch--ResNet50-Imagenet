@@ -88,7 +88,13 @@ def main():
         if os.path.isfile(args.resume):
             print_log("=> loading checkpoint '{}'".format(args.resume), log)
             checkpoint = torch.load(args.resume)
-            model.load_state_dict(checkpoint['state_dict'])
+            new_state_dict = {}
+            """
+            This part of the code modifiy the keies for Pythorch pre-trained to be used in implementation. This past is needed because of usage of DataParalle 
+            """
+            for key, value in checkpoint.items():
+              new_state_dict['module.' + key] = value
+              model.load_state_dict(new_state_dict)
         else:
             print_log("=> no checkpoint found at '{}'".format(args.resume), log)
 
